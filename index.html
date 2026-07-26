@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SpoorNet</title>
+<meta name="description" content="Meld waarnemingen met locatie en help het zoekgebied afbakenen.">
+<meta name="theme-color" content="#111412">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #111412;
+    --bg-alt: #171b18;
+    --panel: #1c211d;
+    --line: #2a312b;
+    --ink: #eee9df;
+    --ink-dim: #9aa39a;
+    --amber: #e8a81e;
+    --amber-dim: #a97b1c;
+    --danger: #c1543f;
+    --ok: #5f9a6f;
+    --radius: 14px;
+    --font-display: "Fraunces", serif;
+    --font-mono: "IBM Plex Mono", monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font-mono);}
+  body{min-height:100vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);}
+  h1,h2,h3{font-family:var(--font-display);font-weight:700;margin:0 0 .4em;}
+  h1{font-size:1.7rem;letter-spacing:.01em;}
+  h2{font-size:1.15rem;color:var(--amber);}
+  p{line-height:1.5;color:var(--ink-dim);}
+  button, .btn{
+    font-family:var(--font-mono);
+    background:var(--amber);
+    color:#171207;
+    border:none;
+    padding:.85em 1.1em;
+    border-radius:10px;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5em;
+    width:100%;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(.98);}
+  button.secondary{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  button.danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  input[type="text"], textarea, select{
+    font-family:var(--font-mono);
+    width:100%;
+    background:var(--bg-alt);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:.75em .8em;
+    border-radius:10px;
+    font-size:.95rem;
+  }
+  textarea{resize:vertical;min-height:5em;}
+
+  header.app-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:1em 1.1em .8em;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:.55em;}
+  .brand-icon{width:30px;height:30px;border-radius:8px;overflow:hidden;flex:none;}
+  .brand-icon img{width:100%;height:100%;display:block;}
+  .brand-name{font-family:var(--font-display);font-weight:700;font-size:1.15rem;}
+  .lang-toggle{display:flex;gap:.3em;}
+  .lang-toggle button{
+    width:auto;padding:.4em .5em;background:var(--bg-alt);border:1px solid var(--line);
+    font-size:1.05rem;border-radius:8px;
+  }
+  .lang-toggle button.active{border-color:var(--amber);}
+
+  main{flex:1;padding:1.1em;padding-bottom:6em;max-width:640px;width:100%;margin:0 auto;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1.1em;margin-bottom:1em;}
+  .hidden{display:none !important;}
+
+  /* Role screen */
+  .role-options{display:flex;flex-direction:column;gap:.8em;margin-top:1em;}
+  .role-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:1.2em;text-align:left;cursor:pointer;
+  }
+  .role-card h3{margin-bottom:.25em;color:var(--ink);font-size:1.05rem;}
+  .role-card p{margin:0;font-size:.85rem;}
+  .role-card:active{border-color:var(--amber);}
+
+  /* Tab nav */
+  nav.tabs{
+    position:fixed;bottom:0;left:0;right:0;
+    display:flex;background:var(--bg-alt);border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);z-index:30;
+  }
+  nav.tabs button{
+    flex:1;background:transparent;color:var(--ink-dim);border-radius:0;
+    font-size:.75rem;flex-direction:column;gap:.15em;padding:.7em 0 .55em;
+  }
+  nav.tabs button.active{color:var(--amber);}
+  nav.tabs .tab-icon{font-size:1.15rem;}
+
+  /* category grid */
+  .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6em;margin:.8em 0;}
+  .cat-btn{
+    background:var(--bg-alt);border:1px solid var(--line);border-radius:12px;
+    padding:.9em .5em;display:flex;flex-direction:column;align-items:center;gap:.35em;
+    color:var(--ink-dim);font-size:.8rem;cursor:pointer;
+  }
+  .cat-btn .ic{font-size:1.5rem;}
+  .cat-btn.active{border-color:var(--amber);color:var(--ink);background:rgba(232,168,30,.08);}
+
+  .field{margin-bottom:1.1em;}
+  .field label{display:block;font-size:.85rem;color:var(--ink-dim);margin-bottom:.4em;}
+
+  .loc-status{display:flex;align-items:center;gap:.6em;font-size:.85rem;padding:.6em .2em;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;}
+  .dot.ok{background:var(--ok);}
+  .dot.err{background:var(--danger);}
+
+  /* compass */
+  .compass-wrap{display:flex;flex-direction:column;align-items:center;gap:.6em;}
+  .compass{
+    width:190px;height:190px;border-radius:50%;border:1px solid var(--line);
+    background:var(--bg-alt);position:relative;touch-action:none;
+  }
+  .compass .n-mark{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:.65rem;color:var(--ink-dim);}
+  .compass .needle{
+    position:absolute;left:50%;top:50%;width:4px;height:78px;
+    background:var(--amber);border-radius:3px;transform-origin:50% 100%;
+    transform:translate(-50%,-100%) rotate(0deg);
+  }
+  .compass .needle::after{
+    content:"";position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+    width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
+    border-bottom:12px solid var(--amber);
+  }
+  .compass .hub{position:absolute;left:50%;top:50%;width:10px;height:10px;background:var(--ink);border-radius:50%;transform:translate(-50%,-50%);}
+  .compass-deg{font-family:var(--font-mono);color:var(--amber);font-size:1rem;}
+
+  .photo-preview{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:.6em;}
+
+  .actions-row{display:flex;gap:.6em;}
+  .actions-row > *{flex:1;}
+
+  /* map + list */
+  #map{width:100%;height:46vh;border-radius:var(--radius);border:1px solid var(--line);}
+  .meld-item{
+    display:flex;gap:.7em;align-items:flex-start;padding:.8em 0;border-bottom:1px solid var(--line);
+  }
+  .meld-item:last-child{border-bottom:none;}
+  .meld-ic{font-size:1.3rem;flex:none;}
+  .meld-meta{font-size:.78rem;color:var(--ink-dim);}
+  .meld-title{font-size:.92rem;color:var(--ink);margin-bottom:.15em;}
+  .empty-state{text-align:center;padding:2.2em 1em;color:var(--ink-dim);}
+  .empty-state .ic{font-size:2rem;display:block;margin-bottom:.4em;}
+
+  .toast{
+    position:fixed;bottom:5.2em;left:50%;transform:translateX(-50%);
+    background:var(--panel);border:1px solid var(--amber);color:var(--ink);
+    padding:.7em 1.1em;border-radius:10px;font-size:.85rem;z-index:60;
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+  footer.copyright{
+    text-align:center;font-size:.72rem;color:var(--ink-dim);padding:1.4em 1em 1.6em;
+  }
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.5em 0;}
+  .switch{position:relative;width:44px;height:24px;flex:none;}
+  .switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;}
+  .switch .track{position:absolute;inset:0;background:var(--line);border-radius:20px;transition:.15s;}
+  .switch .track::after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:var(--ink);border-radius:50%;transition:.15s;}
+  .switch input:checked + .track{background:var(--amber-dim);}
+  .switch input:checked + .track::after{transform:translateX(20px);background:#171207;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon"><img src="icons/icon-192.png" alt=""></div>
+    <span class="brand-name">SpoorNet</span>
+  </div>
+  <div class="lang-toggle">
+    <button id="lang-nl" class="active" onclick="setLang('nl')" aria-label="Nederlands">🇳🇱</button>
+    <button id="lang-it" onclick="setLang('it')" aria-label="Italiano">🇮🇹</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ROLE / ONBOARDING -->
+  <section id="view-role">
+    <h1 data-i18n="role_title">Wat wil je doen?</h1>
+    <p data-i18n="role_sub">Je kunt dit later altijd wisselen via de tabbladen onderin.</p>
+    <div class="role-options">
+      <div class="role-card" onclick="chooseRole('zender')">
+        <h3 data-i18n="role_zender_title">📍 Ik meld een waarneming</h3>
+        <p data-i18n="role_zender_sub">Leg een locatie vast en deel 'm met wie de meldingen verzamelt.</p>
+      </div>
+      <div class="role-card" onclick="chooseRole('ontvanger')">
+        <h3 data-i18n="role_ontvanger_title">🗺️ Ik verzamel meldingen</h3>
+        <p data-i18n="role_ontvanger_sub">Bouw een verzamelkaart op van meldingen die je ontvangt, en stuur die door.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MELDEN (ZENDER) -->
+  <section id="view-melden" class="hidden">
+    <h1 data-i18n="melden_titel">Melding maken</h1>
+
+    <div class="card">
+      <label data-i18n="melden_cat_label">Wat heb je gezien?</label>
+      <div class="cat-grid" id="cat-grid"></div>
+      <div id="anders-field" class="field hidden" style="margin-top:.6em;">
+        <textarea id="anders-tekst" data-i18n-placeholder="anders_placeholder" placeholder="Beschrijf wat je gezien hebt..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field" style="margin-bottom:.6em;">
+        <label data-i18n="locatie_label">Locatie</label>
+        <div class="loc-status">
+          <span class="dot" id="loc-dot"></span>
+          <span id="loc-text" data-i18n="locatie_geen">Nog geen locatie vastgelegd</span>
+        </div>
+      </div>
+      <button class="secondary" onclick="ophalenLocatie()" data-i18n="locatie_ophalen">Locatie ophalen</button>
+    </div>
+
+    <div class="card">
+      <label data-i18n="richting_label">Vliegrichting / looprichting (optioneel)</label>
+      <p style="font-size:.78rem;margin:.2em 0 .8em;" data-i18n="richting_hint">Sleep de pijl in de richting waarin het dier wegvloog of -liep. Dit helpt bij het triangeren van het zoekgebied.</p>
+      <div class="compass-wrap">
+        <div class="compass" id="compass">
+          <span class="n-mark">N</span>
+          <div class="needle" id="needle"></div>
+          <div class="hub"></div>
+        </div>
+        <div class="compass-deg" id="compass-deg">—</div>
+        <button class="secondary" style="width:auto;padding:.4em 1em;" onclick="wisRichting()" data-i18n="richting_reset">Wissen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label data-i18n="foto_label">Foto (optioneel)</label>
+      <img id="foto-preview" class="photo-preview hidden">
+      <input type="file" id="foto-input" accept="image/*" capture="environment" class="hidden" onchange="fotoGekozen(event)">
+      <div class="actions-row">
+        <button class="secondary" onclick="document.getElementById('foto-input').click()" data-i18n="foto_toevoegen">Foto toevoegen</button>
+        <button class="danger hidden" id="foto-verwijder" onclick="verwijderFoto()" data-i18n="foto_verwijderen">Verwijderen</button>
+      </div>
+    </div>
+
+    <button id="verzend-btn" onclick="verstuurMelding()" disabled>
+      <span data-i18n="verzenden_knop">Deel melding</span>
+    </button>
+    <p style="font-size:.78rem;text-align:center;margin-top:.8em;" data-i18n="verzenden_hint">Verstuur het linkje naar wie de meldingen verzamelt — via WhatsApp, Telegram, Signal of sms.</p>
+  </section>
+
+  <!-- VERZAMELKAART (ONTVANGER) -->
+  <section id="view-kaart" class="hidden">
+    <h1 data-i18n="kaart_titel">Verzamelkaart</h1>
+
+    <div class="card" style="padding:.6em .9em;">
+      <div class="toggle-row">
+        <span data-i18n="kaart_cirkels">Toon zoekgebied-cirkels</span>
+        <label class="switch"><input type="checkbox" id="cirkels-toggle" checked onchange="tekenKaart()"><span class="track"></span></label>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="card" id="lijst-card" style="margin-top:1em;">
+      <h2 data-i18n="kaart_lijst">Meldingen</h2>
+      <div id="meld-lijst"></div>
+    </div>
+
+    <div class="actions-row" style="margin-top:.2em;">
+      <button class="secondary" onclick="kopieerSamenvatting()" data-i18n="kaart_export_kopieer">Kopieer samenvatting</button>
+      <button class="secondary" onclick="exporteerCsv()" data-i18n="kaart_export_csv">Exporteer CSV</button>
+    </div>
+    <button class="danger" style="margin-top:.6em;" onclick="wisAlleMeldingen()" data-i18n="kaart_wis">Wis alle meldingen</button>
+  </section>
+
+  <!-- INFO -->
+  <section id="view-info" class="hidden">
+    <h1 data-i18n="info_titel">Over SpoorNet</h1>
+    <div class="card">
+      <h2 data-i18n="info_werking_titel">Hoe het werkt</h2>
+      <p data-i18n="info_werking_tekst">Meld een waarneming met locatie, en deel het linkje met wie de meldingen coördineert. Meerdere meldingen samen bakenen een zoekgebied af — net als bij de bekende triangulatiemethode die imkers gebruiken om hoornaarnesten op te sporen.</p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="info_privacy_titel">Privacy</h2>
+      <p data-i18n="info_privacy_tekst">SpoorNet gebruikt geen server: alle meldingen worden als linkje gedeeld en lokaal op het toestel van de ontvanger opgeslagen. Er wordt niets naar derden verstuurd, behalve wat je zelf deelt.</p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="info_categorie_titel">Categorieën</h2>
+      <p data-i18n="info_categorie_tekst">Aziatische hoornaar en wolf zijn exoten/wildlife-waarnemingen die relevante instanties kunnen helpen. Vermist huisdier is bedoeld voor het samen zoeken naar een zoekgebied rond een laatst geziene plek. Gebruik "Anders" voor eigen doeleinden.</p>
+    </div>
+    <div class="card">
+      <h2 data-i18n="info_let_op_titel">Let op</h2>
+      <p data-i18n="info_let_op_tekst">Deze app is niet bedoeld voor vermiste personen. Gebruik daarvoor altijd de officiële kanalen zoals 112 of Burgernet.</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabs hidden">
+  <button id="tab-melden" onclick="gaNaar('melden')">
+    <span class="tab-icon">📍</span><span data-i18n="tab_melden">Melden</span>
+  </button>
+  <button id="tab-kaart" onclick="gaNaar('kaart')">
+    <span class="tab-icon">🗺️</span><span data-i18n="tab_kaart">Verzamelkaart</span>
+  </button>
+  <button id="tab-info" onclick="gaNaar('info')">
+    <span class="tab-icon">ℹ️</span><span data-i18n="tab_info">Info</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<footer class="copyright" id="copyright-footer">© Jan den Hollander — SpoorNet</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
