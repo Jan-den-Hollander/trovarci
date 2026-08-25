@@ -138,6 +138,7 @@ let huidigeFoto = null;
 let mapInstance = null;
 let markerLayer = null;
 let tilesAdded = false;
+let compassMapInstance = null;
 
 /* ---------- init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
@@ -276,6 +277,7 @@ function ophalenLocatie() {
     dot.className = 'dot ok';
     txt.textContent = TR[lang].locatie_ok + ' · ' + huidigeLocatie.lat.toFixed(5) + ', ' + huidigeLocatie.lon.toFixed(5);
     updateVerzendKnop();
+    updateCompassMap(huidigeLocatie.lat, huidigeLocatie.lon);
   }, () => {
     dot.className = 'dot err';
     txt.textContent = TR[lang].locatie_fout;
@@ -309,6 +311,31 @@ function setRichting(deg) {
   richtingGraden = Math.round(deg);
   document.getElementById('needle').style.transform = `translate(-50%,-100%) rotate(${richtingGraden}deg)`;
   document.getElementById('compass-deg').textContent = richtingGraden + '°';
+}
+
+function updateCompassMap(lat, lon) {
+  const el = document.getElementById('compass-map');
+  if (!el) return;
+  if (!compassMapInstance) {
+    compassMapInstance = L.map('compass-map', {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false,
+      touchZoom: false,
+      inertia: false
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(compassMapInstance);
+  }
+  compassMapInstance.setView([lat, lon], 18);
+  setTimeout(() => compassMapInstance.invalidateSize(), 50);
 }
 
 function wisRichting() {
