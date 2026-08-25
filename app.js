@@ -33,7 +33,8 @@ const TR = {
     richting_hint:'Sleep de pijl in de richting waarin het dier wegvloog of -liep. Dit helpt bij het triangeren van het zoekgebied.',
     richting_reset:'Wissen',
     foto_label:'Foto (optioneel)',
-    foto_toevoegen:'Foto toevoegen',
+    foto_maken:'Foto maken',
+    foto_galerij:'Uit galerij',
     foto_verwijderen:'Verwijderen',
     verzenden_knop:'Deel melding',
     verzenden_hint:'Verstuur het linkje naar wie de meldingen verzamelt — via WhatsApp, Telegram, Signal of sms.',
@@ -92,7 +93,8 @@ const TR = {
     richting_hint:"Trascina la freccia nella direzione in cui l'animale è volato o fuggito. Aiuta a triangolare l'area di ricerca.",
     richting_reset:'Cancella',
     foto_label:'Foto (opzionale)',
-    foto_toevoegen:'Aggiungi foto',
+    foto_maken:'Scatta foto',
+    foto_galerij:'Dalla galleria',
     foto_verwijderen:'Rimuovi',
     verzenden_knop:'Condividi segnalazione',
     verzenden_hint:'Invia il link a chi raccoglie le segnalazioni — via WhatsApp, Telegram, Signal o SMS.',
@@ -377,8 +379,10 @@ function verwijderFoto() {
   if (prev) prev.classList.add('hidden');
   const btn = document.getElementById('foto-verwijder');
   if (btn) btn.classList.add('hidden');
-  const input = document.getElementById('foto-input');
-  if (input) input.value = '';
+  const inputCamera = document.getElementById('foto-input-camera');
+  if (inputCamera) inputCamera.value = '';
+  const inputGalerij = document.getElementById('foto-input-galerij');
+  if (inputGalerij) inputGalerij.value = '';
 }
 
 /* ---------- versturen ---------- */

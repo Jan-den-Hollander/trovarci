@@ -137,14 +137,14 @@
     width:190px;height:190px;border-radius:50%;border:1px solid var(--line);
     background:var(--bg-alt);position:relative;touch-action:none;overflow:hidden;
   }
-  .compass-map{position:absolute;inset:0;pointer-events:none;background:var(--bg-alt);}
+  .compass-map{position:absolute;inset:0;pointer-events:none;background:var(--bg-alt);z-index:1;}
   .compass-map.leaflet-container{background:var(--bg-alt);}
   .compass .n-mark{
     position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:.65rem;
-    color:#fff;background:rgba(0,0,0,.45);padding:.05em .4em;border-radius:6px;z-index:500;
+    color:#fff;background:rgba(0,0,0,.45);padding:.05em .4em;border-radius:6px;z-index:10;
   }
   .compass .needle{
-    position:absolute;left:50%;top:50%;width:4px;height:78px;
+    position:absolute;left:50%;top:50%;width:4px;height:78px;z-index:10;
     background:var(--amber);border-radius:3px;transform-origin:50% 100%;
     transform:translate(-50%,-100%) rotate(0deg);
   }
@@ -153,13 +153,13 @@
     width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
     border-bottom:12px solid var(--amber);
   }
-  .compass .hub{position:absolute;left:50%;top:50%;width:10px;height:10px;background:var(--ink);border-radius:50%;transform:translate(-50%,-50%);}
+  .compass .hub{position:absolute;left:50%;top:50%;width:10px;height:10px;background:var(--ink);border-radius:50%;transform:translate(-50%,-50%);z-index:10;}
   .compass-deg{font-family:var(--font-mono);color:var(--amber);font-size:1rem;}
 
   .photo-preview{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:.6em;}
 
-  .actions-row{display:flex;gap:.6em;}
-  .actions-row > *{flex:1;}
+  .actions-row{display:flex;gap:.6em;flex-wrap:wrap;}
+  .actions-row > *{flex:1;min-width:8.5em;}
 
   /* map + list */
   #map{width:100%;height:46vh;border-radius:var(--radius);border:1px solid var(--line);}
@@ -269,9 +269,11 @@
     <div class="card">
       <label data-i18n="foto_label">Foto (optioneel)</label>
       <img id="foto-preview" class="photo-preview hidden">
-      <input type="file" id="foto-input" accept="image/*" class="hidden" onchange="fotoGekozen(event)">
+      <input type="file" id="foto-input-camera" accept="image/*" capture="environment" class="hidden" onchange="fotoGekozen(event)">
+      <input type="file" id="foto-input-galerij" accept="image/*" class="hidden" onchange="fotoGekozen(event)">
       <div class="actions-row">
-        <button class="secondary" onclick="document.getElementById('foto-input').click()" data-i18n="foto_toevoegen">Foto toevoegen</button>
+        <button class="secondary" onclick="document.getElementById('foto-input-camera').click()" data-i18n="foto_maken">Foto maken</button>
+        <button class="secondary" onclick="document.getElementById('foto-input-galerij').click()" data-i18n="foto_galerij">Uit galerij</button>
         <button class="danger hidden" id="foto-verwijder" onclick="verwijderFoto()" data-i18n="foto_verwijderen">Verwijderen</button>
       </div>
     </div>
