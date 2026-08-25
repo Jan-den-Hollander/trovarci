@@ -1,5 +1,5 @@
 /* SpoorNet service worker — © Jan den Hollander */
-const CACHE_NAME = 'spoornet-v4';
+const CACHE_NAME = 'spoornet-v5';
 const ASSETS = [
   './',
   './index.html',
